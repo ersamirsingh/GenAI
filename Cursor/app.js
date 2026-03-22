@@ -4,7 +4,6 @@ import os from 'os'
 import child_process from 'child_process'
 import 'dotenv/config'
 import util from 'util'
-import { readSync } from "fs";
 
 
 const execute = util.promisify(child_process.exec);
@@ -15,14 +14,32 @@ const ai = new GoogleGenAI({});
 
 
 
-const executeCommand = async (command) => {
+// const ALLOWED_COMMANDS = ['mkdir', 'touch', 'echo', 'cat', 'dir', 'ls'];
+const ALLOWED_COMMANDS = platform === 'win32'
+  ? ['mkdir', 'type', 'echo', 'dir']
+  : ['mkdir', 'touch', 'echo', 'cat', 'ls'];
+const isCommandSafe = (command) => {
 
+   if (typeof command !== "string") return false;
+   command = command.trim();
+   return ALLOWED_COMMANDS.some(cmd => command.startsWith(cmd));
+};
+
+const executeCommand = async ({command}) => {
+   
    try {
+      if (!isCommandSafe(command)) {
+         return "Command not allowed for security reasons.";
+      }
+
       const { stdout, stderr } = await execute(command);
+      console.log('Standard Output',stdout)
+      console.log('Standard Error',stderr)
+
       if (stderr)
          return `Error occured: ${stderr}`;
 
-      return `Execution completed: ${stdout}`;
+      return `Success: ${stdout}`;
    } catch (error) {
       return `Error occured: ${error.message}`;
    }
@@ -50,8 +67,10 @@ const History = [];
 
 async function buildWebsite() {
 
-
-   while (true) {
+   let steps = 0;
+   const MAX_STEPS = 8;
+   while (steps < MAX_STEPS) {
+      steps++;
 
       const result = await ai.models.generateContent({
          model: "gemini-2.5-flash",
@@ -95,6 +114,8 @@ async function buildWebsite() {
          const functionCall = result.functionCalls[0];
 
          const { name, args } = functionCall;
+         console.log('Function name: ', name);
+         console.log('Arguments name: ', args);
 
          const toolResponse = await executeCommand(args);
 

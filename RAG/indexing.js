@@ -19,7 +19,7 @@ async function indexing() {
    try {
 
       const PDF_PATH = path.resolve(__dirname, 'Node.pdf');
-      console.log(PDF_PATH)
+      // console.log(PDF_PATH)
 
       const loader = new PDFLoader(PDF_PATH);
       const rawDocs = await loader.load();
@@ -29,6 +29,7 @@ async function indexing() {
          chunkOverlap: 200,
       });
       const chunkedDocs = await textSplitter.splitDocuments(rawDocs);
+      console.log(chunkedDocs.length)
 
 
       const { GEMINI_API_KEY, PINECONE_API_KEY, PINECONE_INDEX_NAME } = process.env;
@@ -41,6 +42,7 @@ async function indexing() {
          model: 'text-embedding-004',
       });
 
+      console.log('Embedding created successfully!')
 
       const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
       const pineconeIndex = pinecone.Index(PINECONE_INDEX_NAME);
@@ -52,6 +54,9 @@ async function indexing() {
          pineconeIndex,
          maxConcurrency: 5,
       });
+   
+      console.log("Indexing completed successfully!");
+      return null;
    } catch (error) {
       console.error("Indexing failed:", error.message);
       process.exit(1);

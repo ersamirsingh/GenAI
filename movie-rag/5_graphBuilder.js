@@ -1,28 +1,3 @@
-// =====================================================================
-// 5_graphBuilder.js — STEP 3: Structured JSON → Neo4j Graph
-// =====================================================================
-//
-// Each entity → NODE.  Each connection → RELATIONSHIP.
-//
-// MERGE vs CREATE:
-//   CREATE always makes new node (causes duplicates!)
-//   MERGE first checks "does it exist?" then creates only if needed
-//
-// Example without MERGE:
-//   CREATE (:Actor {name: "Zendaya"})  → for Movie 1
-//   CREATE (:Actor {name: "Zendaya"})  → for Movie 2
-//   Result: TWO Zendaya nodes ❌
-//
-// With MERGE:
-//   MERGE (:Actor {name: "Zendaya"})   → creates it
-//   MERGE (:Actor {name: "Zendaya"})   → finds existing, skips
-//   Result: ONE Zendaya node ✅
-//
-// INDEXES:
-//   Without index → MERGE scans ALL nodes to find match (slow)
-//   With index    → MERGE uses lookup table (fast)
-// =====================================================================
-
 import { driver } from "./2_config.js";
 
 // Insert ONE movie's entities and relationships
@@ -78,8 +53,8 @@ async function insertMovieGraph(entity) {
             );
          }
 
-         // Award nodes + WON relationships
-         // "Oscar (Best Cinematography)" → type: "Oscar", category: "Best Cinematography"
+         
+         
          for (const awardName of entity.awards) {
             const match = awardName.match(/^(.+?)\s*\((.+)\)$/);
             if (match) {

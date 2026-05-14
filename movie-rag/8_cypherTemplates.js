@@ -1,29 +1,15 @@
-// =====================================================================
-// 8_cypherTemplates.js — SAFE CYPHER GENERATION
-// =====================================================================
-//
-// LLM NEVER writes raw Cypher. Instead:
-//   1. LLM outputs a JSON plan (which templates to use)
-//   2. This file VALIDATES every step against whitelists
-//   3. This file BUILDS safe read-only Cypher
-//
-// WHITELIST = list of things that ARE allowed.
-// Anything NOT on the list is rejected.
-//
-// This guarantees: no DELETE, no SET, no CREATE can ever reach Neo4j.
-// =====================================================================
 
-// ── What labels (node types) are allowed ──
+
 const ALLOWED_LABELS = new Set([
    "Movie", "Director", "Actor", "Genre", "Theme", "Award",
 ]);
 
-// ── What relationships are allowed ──
+
 const ALLOWED_RELATIONSHIPS = new Set([
    "DIRECTED", "ACTED_IN", "BELONGS_TO", "EXPLORES", "WON",
 ]);
 
-// ── What properties each label can access ──
+
 const ALLOWED_PROPERTIES = {
    Movie: ["title", "year"],
    Director: ["name"],
@@ -33,12 +19,12 @@ const ALLOWED_PROPERTIES = {
    Award: ["name", "category"],
 };
 
-// ── What filter operators are allowed ──
+
 const ALLOWED_OPERATORS = new Set([
    "=", "<>", ">", "<", ">=", "<=", "CONTAINS", "STARTS WITH",
 ]);
 
-// ── Short variable names for each label ──
+
 const LABEL_VAR_MAP = {
    Movie: "m", Director: "d", Actor: "a",
    Genre: "g", Theme: "t", Award: "aw",
@@ -93,7 +79,7 @@ function validateStep(step) {
 }
 
 // Build safe Cypher from a validated plan
-//
+
 // Input:  { steps: [{ type: "traversal", from: "Director", ... }, ...] }
 // Output: { cypher: "MATCH (d:Director)...", params: { p0: "James Cameron" } }
 function buildCypher(plan) {

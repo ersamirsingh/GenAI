@@ -1,18 +1,4 @@
-// =====================================================================
-// 4_entityExtractor.js — STEP 2: PDF → Gemini (with file upload) → JSON
-// =====================================================================
-//
-// Upload PDF ONCE to Gemini Files API → ask "extract movies 1-50" → 20 requests
-// Gemini reads entire PDF in context (1M token window)
-// 1000 movies ÷ 50 per batch = only 20 API calls!
-//
-// RETRY STRATEGY:
-//   - Every batch gets 3 attempts (retries on ANY error, not just 429)
-//   - 429 (rate limit) → wait 30s/60s/90s
-//   - Other errors (parse fail, network, etc.) → wait 10s/20s/30s
-//   - After all batches done → retry ALL failed batches one more time
-//   - Final summary shows exactly which movies were lost (if any)
-// =====================================================================
+
 
 import { genai } from "./2_config.js";
 import { createPartFromUri } from "@google/genai";
@@ -38,10 +24,7 @@ Rules:
 - Return a JSON ARRAY of objects: [{...}, {...}, ...]
 - Return ONLY valid JSON. No markdown, no backticks, no explanation.`;
 
-/**
- * Upload PDF to Gemini Files API.
- * File stays on Google servers for 48 hours.
- */
+
 async function uploadPDF(pdfPath) {
    console.log("   📤 Uploading PDF to Gemini Files API...");
 
@@ -66,16 +49,7 @@ async function uploadPDF(pdfPath) {
    return fileInfo;
 }
 
-/**
- * Extract one batch of movies from the uploaded PDF.
- * Retries up to maxRetries times on ANY error (not just 429).
- *
- * WHY retry everything?
- *   - 429 → rate limit (wait longer)
- *   - JSON parse error → Gemini returned markdown/garbage (retry often fixes it)
- *   - Network timeout → transient (retry fixes it)
- *   - 500/503 → server overload (retry fixes it)
- */
+
 async function extractBatch(fileInfo, start, end, attempt = 1) {
    const maxRetries = 3;
    const prompt = EXTRACTION_PROMPT
@@ -118,15 +92,8 @@ async function extractBatch(fileInfo, start, end, attempt = 1) {
    }
 }
 
-/**
- * Extract ALL entities from PDF.
- *
- * PAID TIER STRATEGY:
- *   - Run 5 batches in PARALLEL (not one by one)
- *   - No delays needed (1000+ RPM on paid tier)
- *   - 20 batches ÷ 5 parallel = 4 rounds ≈ 1-2 minutes total
- *   - Pass 2: Retry any failed batches
- */
+
+
 async function extractAllEntities(pdfPath, totalMovies = 1000, batchSize = 50) {
    // Upload PDF once
    const fileInfo = await uploadPDF(pdfPath);
@@ -174,7 +141,6 @@ async function extractAllEntities(pdfPath, totalMovies = 1000, batchSize = 50) {
 
       console.log(`   ✅ Total so far: ${results.length} movies`);
 
-      // Small 2s breather between rounds (not strictly needed, just polite)
       if (i + CONCURRENCY < allBatches.length) {
          await new Promise((r) => setTimeout(r, 2000));
       }
@@ -201,7 +167,6 @@ async function extractAllEntities(pdfPath, totalMovies = 1000, batchSize = 50) {
       }
    }
 
-   // Cleanup uploaded file
    try {
       await genai.files.delete({ name: fileInfo.name });
       console.log("   🗑️ PDF deleted from Gemini servers");

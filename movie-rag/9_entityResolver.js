@@ -1,41 +1,6 @@
-// =====================================================================
-// 9_entityResolver.js — EXTRACT + RESOLVE ENTITIES
-// =====================================================================
-//
-// THIS RUNS FIRST FOR EVERY QUERY. No exceptions.
-//
-// WHY?
-//   User says "DiCaprio" — is that an Actor? Director? Movie?
-//   User says "Nolan" — same question.
-//   User says "Inception" — could be Movie, could be Theme.
-//   User says "Oscar" — Award? Movie? Actor named Oscar?
-//
-//   WE DON'T KNOW. Only the graph knows.
-//   So we search ALL node types for every entity.
-//
-// FLOW:
-//   Step 1: LLM extracts entity names from the query
-//           "Action movies with Tom Hardy" → ["Action", "Tom Hardy"]
-//
-//   Step 2: For EACH entity, search ALL 6 node types in Neo4j
-//           "Tom Hardy" → Actor ✅, Director ❌, Movie ❌, Genre ❌...
-//           "Action" → Genre ✅, Actor ❌, Director ❌, Movie ❌...
-//
-//   Step 3: Return resolved entities with their labels
-//           [
-//             { name: "Tom Hardy", searchTerm: "Tom Hardy", label: "Actor", nodeName: "Tom Hardy" },
-//             { name: "Action", searchTerm: "Action", label: "Genre", nodeName: "Action" }
-//           ]
-//
-// FUZZY MATCHING:
-//   User might say "Nolan" but graph has "Christopher Nolan".
-//   We use CONTAINS for partial matching.
-//   If exact match exists, prefer it over partial match.
-// =====================================================================
-
 import { llm, driver } from "./2_config.js";
 
-// All node types in our graph and their searchable properties
+
 const NODE_TYPES = [
    { label: "Movie", property: "title" },
    { label: "Director", property: "name" },
@@ -45,9 +10,8 @@ const NODE_TYPES = [
    { label: "Award", property: "name" },
 ];
 
-// =====================================================================
-// Step 1: LLM extracts entity names from query
-// =====================================================================
+
+
 async function extractEntities(query) {
    const response = await llm.invoke([
       {
@@ -91,21 +55,7 @@ Examples:
    }
 }
 
-// =====================================================================
-// Step 2: Resolve ONE entity across ALL node types in Neo4j
-// =====================================================================
-//
-// Search strategy:
-//   1. Try EXACT match first (case-insensitive)
-//      "Inception" = "Inception" ✅
-//
-//   2. If no exact match, try CONTAINS (partial match)
-//      "Nolan" CONTAINS in "Christopher Nolan" ✅
-//
-//   3. If multiple matches across labels, return ALL
-//      (e.g. "Jordan" could be Actor AND Director)
-//
-// =====================================================================
+
 async function resolveEntity(entityName) {
    const session = driver.session({ defaultAccessMode: "READ" });
    const matches = [];
@@ -162,20 +112,8 @@ async function resolveEntity(entityName) {
    return matches;
 }
 
-// =====================================================================
-// Main: Extract entities from query → Resolve each in Neo4j
-// =====================================================================
-//
-// Returns:
-//   {
-//     query: "Action movies with Tom Hardy",
-//     entities: [
-//       { searchTerm: "Action", label: "Genre", nodeName: "Action", matchType: "exact" },
-//       { searchTerm: "Tom Hardy", label: "Actor", nodeName: "Tom Hardy", matchType: "exact" }
-//     ],
-//     unresolved: []  // entities not found in graph
-//   }
-// =====================================================================
+
+
 async function resolveQueryEntities(query) {
    console.log("   🔍 Step 1: Extracting entities from query...");
    const entityNames = await extractEntities(query);

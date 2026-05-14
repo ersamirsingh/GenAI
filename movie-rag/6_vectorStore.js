@@ -1,19 +1,3 @@
-// =====================================================================
-// 6_vectorStore.js — PDF → Chunks → Embeddings → Pinecone
-// =====================================================================
-//
-// FLOW:
-//   1. Parse PDF → raw text
-//   2. Split text into chunks (by separator)
-//   3. Embed each chunk using Gemini embedding API
-//   4. Upsert to Pinecone
-//
-// WHY NOT @langchain/pinecone?
-//   @langchain/pinecone requires @langchain/core < 0.4.0
-//   but we use @langchain/core 1.x. Incompatible. No fix yet.
-//   So we use Pinecone SDK directly — it's just one upsert call.
-// =====================================================================
-
 import fs from "fs";
 import pdf from "pdf-parse/lib/pdf-parse.js";
 import { embedText, pineconeIndex } from "./2_config.js";
@@ -23,9 +7,8 @@ const EMBED_CONCURRENCY = 5;
 const EMBED_DELAY_MS = 500;
 const UPSERT_BATCH_SIZE = 100;
 
-// =====================================================================
-// STEP 1: Parse PDF → Raw Text
-// =====================================================================
+
+
 async function parsePDF(pdfPath) {
    const buffer = fs.readFileSync(pdfPath);
    const data = await pdf(buffer);
@@ -33,9 +16,8 @@ async function parsePDF(pdfPath) {
    return data.text;
 }
 
-// =====================================================================
-// STEP 2: Chunk Text
-// =====================================================================
+
+
 function chunkText(rawText) {
    const blocks = rawText.split(/\n-{5,}\n/);
 
@@ -49,9 +31,9 @@ function chunkText(rawText) {
    return chunks;
 }
 
-// =====================================================================
-// STEP 3: Embed with Retry
-// =====================================================================
+
+
+
 async function embedWithRetry(text, maxRetries = 3) {
    for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -70,9 +52,9 @@ async function embedWithRetry(text, maxRetries = 3) {
    }
 }
 
-// =====================================================================
-// MAIN: Parse → Chunk → Embed → Upsert
-// =====================================================================
+
+
+
 async function buildVectorStore(pdfPath) {
    console.log(`\n📐 Building vector store from PDF...`);
    console.log(`   ⚡ Concurrency: ${EMBED_CONCURRENCY} parallel embeddings\n`);
